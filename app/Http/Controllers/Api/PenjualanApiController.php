@@ -7,6 +7,9 @@ use App\Models\PenjualanApiDetail;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Http\Resources\PostResource;
+use Illuminate\Support\Facades\DB;
+//import Facade "Validator"
+use Illuminate\Support\Facades\Validator;
 
 class PenjualanApiController extends Controller
 {
@@ -22,5 +25,63 @@ class PenjualanApiController extends Controller
 
         //return collection of posts as a resource
         return new PostResource(true, 'List Data Penjualan', $posts);
+    }
+
+    /**
+     * store
+     *
+     * @param  mixed $request
+     * @return void
+     */
+    public function store(Request $request)
+    {
+        //define validation rules
+        $validator = Validator::make($request->all(), [
+            'nama_pelanggan'    => 'required',
+            'tanggal'           => 'required',
+            'jam'               => 'required',
+        ]);
+
+        //check if validation fails
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        // Begin database transaction
+        DB::beginTransaction();
+
+        try {
+            // Create penjualan
+            $penjualan = PenjualanApi::create([
+                'nama_pelanggan'    => $request->nama_pelanggan,
+                'tanggal'           => $request->tanggal,
+                'jam'               => $request->jam,
+                'bayar_tunai'       => $request->bayar_tunai,
+                'kembali'           => $request->kembali,
+            ]);
+
+            // Iterate through items and save them to penjualan_api_details
+            foreach ($request->items as $item) {
+                PenjualanApiDetail::create([
+                    'penjualan_api_id'  => $penjualan->id,
+                    'item'              => $item['item'],
+                    'qty'               => $item['qty'],
+                    'harga_satuan'      => $item['harga_satuan'],
+                    'sub_total'         => $item['sub_total'],
+                ]);
+            }
+
+            // Commit the transaction
+            DB::commit();
+
+            // Return success response
+            return new PostResource(true, 'Transaksi Berhasil Ditambahkan!', $penjualan);
+        } catch (\Exception $e) {
+            // If an exception occurs, rollback the transaction
+            DB::rollBack();
+
+            // Return error response
+            return response()->json(['message' => 'Transaksi Gagal Ditambahkan', 'error' => $e->getMessage()], 500);
+        }
     }
 }
