@@ -58,10 +58,14 @@ class PenjualanApiController extends Controller
                 'jam'               => $request->jam,
                 'bayar_tunai'       => $request->bayar_tunai,
                 'kembali'           => $request->kembali,
+                'total'             => $request->total,
             ]);
 
             // Iterate through items and save them to penjualan_api_details
+            $totalSubTotal = 0;
             foreach ($request->items as $item) {
+                $totalSubTotal += $item['sub_total'];
+
                 PenjualanApiDetail::create([
                     'penjualan_api_id'  => $penjualan->id,
                     'item'              => $item['item'],
@@ -69,6 +73,11 @@ class PenjualanApiController extends Controller
                     'harga_satuan'      => $item['harga_satuan'],
                     'sub_total'         => $item['sub_total'],
                 ]);
+            }
+
+            // Check if total sub total matches with total
+            if ($totalSubTotal !== $request->total) {
+                throw new \Exception('Sub total tidak sama dengan total.');
             }
 
             // Commit the transaction

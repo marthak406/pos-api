@@ -20,5 +20,6 @@ class PenjualanApi extends Model
         'jam',
         'bayar_tunai',
         'kembali',
+        'total'
     ];
 }
