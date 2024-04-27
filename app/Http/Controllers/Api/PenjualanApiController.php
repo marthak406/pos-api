@@ -93,4 +93,35 @@ class PenjualanApiController extends Controller
             return response()->json(['message' => 'Transaksi Gagal Ditambahkan', 'error' => $e->getMessage()], 500);
         }
     }
+
+    public function pajak(Request $request){
+        //define validation rules
+        $validator = Validator::make($request->all(), [
+            'total'         => 'required|numeric',
+            'persen_pajak'  => 'required|numeric',
+        ]);
+
+        //check if validation fails
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        $pajak_rp = 0;
+        $net_sales = $request->total;
+        $persen_pajak = $request->persen_pajak;
+        $pajak_rp = $net_sales * ($persen_pajak/100);
+        $net_sales_after_tax = $net_sales - $pajak_rp;
+
+        $sum = [
+            'net_sales' => $net_sales,
+            'pajak_rp'  => $pajak_rp,
+            'net_sales_after_tax' => $net_sales_after_tax 
+        ];
+
+        try {
+            return response()->json($sum, 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 }
